@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Csv\CsvRequest;
 use App\Services\Csv\CsvService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use mysql_xdevapi\Collection;
 use Rap2hpoutre\FastExcel\FastExcel;
 use App\Models\User;
 
@@ -58,13 +60,29 @@ class CsvController extends Controller
         $data->move(public_path('upload/imgdogs/'), $data->getClientOriginalName());
 
         $excel = (new FastExcel())->import(public_path('upload/imgdogs/') . $data->getClientOriginalName() ?: '', function ($line) {
-            return User::create([
-                'first_name' => !empty($line['First Name']) ? $line['First Name'] : 'No name',
-                'last_name' => !empty($line['Last Name']) ? $line['Last Name'] : 'No name',
-                'email' => !empty($line['Email']) ? $line['Email'] : 'example@gmail.com',
-                'phone' => !empty($line['Phone']) ? $line['Phone']: '0389643555',
-            ]);
+            return [
+                'first_name' => line['First Name'],
+                'last_name' => $line['Last Name'],
+                'email' => $line['Email'],
+                'phone' => $line['Phone'],
+            ];
         });
+
+
+        try {
+
+            DB::beginTransaction();
+            collect($excel)
+                ->chunk(10000)
+                ->each(function ($customer) {
+                    User::insert($customer->toArray());
+                });
+
+            DB::commit();
+        }catch (\Exception $e) {
+            DB::rollBack();
+        }
+
 
         return redirect()->back();
     }
