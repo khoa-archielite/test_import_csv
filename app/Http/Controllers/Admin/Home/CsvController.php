@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin\Home;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Csv\CsvRequest;
+use App\Models\Customer;
 use App\Services\Csv\CsvService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use mysql_xdevapi\Collection;
 use Rap2hpoutre\FastExcel\FastExcel;
 use App\Models\User;
@@ -28,15 +31,7 @@ class CsvController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * @param \App\Http\Requests\Csv\CsvRequest $request
-     */
-    public function importCSV(CsvRequest $request)
-    {
-
+        return view('csv.import');
     }
 
     /**
@@ -44,100 +39,26 @@ class CsvController extends Controller
      */
     public function create()
     {
-        return view('csv.import');
+        return view('frontend.csv.import');
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param \App\Http\Requests\Csv\CsvRequest $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(CsvRequest $request): RedirectResponse
     {
-        $data = $request->file('csv_file');
 
-        $data->move(public_path('upload/imgdogs/'), $data->getClientOriginalName());
+        $data = $request->validated();
 
-        $excel = (new FastExcel())->import(public_path('upload/imgdogs/') . $data->getClientOriginalName() ?: '', function ($line) {
-            return [
-                'first_name' => line['First Name'],
-                'last_name' => $line['Last Name'],
-                'email' => $line['Email'],
-                'phone' => $line['Phone'],
-            ];
-        });
+        if ($result = $this->CsvService->importCsv($data)) {
+            session()->flash($result['status'] ? 'success' : 'fail', __($result['message']));
 
-
-        try {
-
-            DB::beginTransaction();
-            collect($excel)
-                ->chunk(10000)
-                ->each(function ($customer) {
-                    User::insert($customer->toArray());
-                });
-
-            DB::commit();
-        }catch (\Exception $e) {
-            DB::rollBack();
+            return redirect()->route('index');
         }
 
+        session()->flash('fail', __('Import fail'));
 
-        return redirect()->back();
-    }
-
-    /**
-     * @return \Generator
-     */
-    function usersGenerator() {
-        foreach (User::cursor() as $user) {
-            yield $user;
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
+        return redirect()->route('csv.create');
     }
 }

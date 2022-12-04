@@ -15,6 +15,8 @@ use \App\Http\Controllers\Admin\Home\CsvController;
 |
 */
 
+Route::get('/', [HomeController::class, 'index'])->name('index');
 Route::resource('home',HomeController::class);
 
-Route::resource('csv', CsvController::class);
+Route::get('csv', [CsvController::class, 'create'])->name('csv.store');
+Route::post('csv', [CsvController::class, 'store'])->name('csv.create');

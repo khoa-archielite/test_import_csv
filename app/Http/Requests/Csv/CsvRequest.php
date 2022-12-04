@@ -13,7 +13,7 @@ class CsvRequest extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,7 +24,7 @@ class CsvRequest extends FormRequest
     public function rules()
     {
         return [
-            'csv_file' => 'required'
+            'csv_file' => 'required|mimes:csv'
         ];
     }
 }
