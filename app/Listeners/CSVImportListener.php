@@ -41,7 +41,21 @@ class CSVImportListener
 
         $result = (new FastExcel())->import( Storage::disk('local')->path($filePath), function ($line) {
             $dataImports = [];
-            if ($line['First Name'] && $line['Last Name'] && $line['Email'] && $line['Phone']) {
+            if (
+                (
+                    isset($line['First Name'])
+                    && isset($line['Last Name'])
+                    && isset($line['Email'])
+                    && isset($line['Phone'])
+                )
+                && (
+                    $line['Phone']
+                    && $line['First Name']
+                    && $line['Last Name']
+                    && $line['Email']
+                    && $line['Phone']
+                )
+            ){
                 $dataImports += [
                     'first_name' => $line['First Name'],
                     'last_name' => $line['Last Name'],
